@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "dotnet",
+            "name": "Launch Test",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/GFS.CLI.csproj",
+            "preLaunchTask": "Build"
+        }
+    ]
+}
