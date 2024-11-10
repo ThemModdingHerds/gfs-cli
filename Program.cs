@@ -1,43 +1,66 @@
-using BinaryReader = ThemModdingHerds.IO.BinaryReader;
+using ThemModdingHerds.IO.Binary;
 
 namespace ThemModdingHerds.GFS.Client;
 public static class Program
 {
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
-        if(args.Length < 1)
+        if(args.Length != 1)
         {
-            Console.WriteLine("Usage: ThemModdingHerds.GFS.Cli <gfs-file> [<output-folder>]");
-            return;
+            PrintHelp();
+            return 1;
         }
-        string gfsPath = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory,args[0]));
-        if(!System.IO.File.Exists(gfsPath))
-            throw new Exception(gfsPath + " does not exist");
-        string outputPath = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory,args.Length < 2 ?  Path.GetFileNameWithoutExtension(gfsPath) : args[1]));
-        //Directory.CreateDirectory(outputPath);
-        BinaryReader reader = new(gfsPath);
-        File file = reader.ReadGFSFile();
-        Header header = file.Header;
-        List<FileEntry> entries = file.Entries;
-        Console.WriteLine("id: '{0}', version: '{1}', count: {2}, offset: 0x{3}",header.Identifier,header.Version,header.EntryCount,header.DataOffset.ToString("X"));
-        foreach(FileEntry entry in entries)
+        string path = args[0];
+        if(File.Exists(path))
         {
-            string filepath = Path.GetFullPath(Path.Combine(outputPath,entry.Path));
-            string? dirpath = Path.GetDirectoryName(filepath);
-            if(dirpath == null)
-            {
-                Console.WriteLine("WARNING: Invalid path found");
-                continue;
-            }
-            if(!entry.HasData || entry.Size == 0)
-            {
-                Console.WriteLine("WARNING: No data for " + entry.Path);
-                continue;
-            }
-            Directory.CreateDirectory(dirpath);
-            FileStream stream = System.IO.File.Create(filepath);
-            stream.Write(entry.Data);
+            Unpack(path);
+            return 0;
         }
-        Console.WriteLine("done");
+        if(Directory.Exists(path))
+        {
+            Pack(path);
+            return 0;
+        }
+        return 1;
+    }
+    private static void PrintHelp()
+    {
+        Console.WriteLine("ThemModdingHerds.GFS.CLI - .gfs (un)packer");
+        Console.WriteLine();
+        Console.WriteLine("usage:");
+        Console.WriteLine();
+        Console.WriteLine("\tThemModdingHerds.GFS.CLI.exe <gfs-file>");
+        Console.WriteLine("\tThemModdingHerds.GFS.CLI.exe <folder>");
+    }
+    private static void Pack(string folder)
+    {
+        string filepath = $"{folder}.gfs";
+        if(File.Exists(filepath))
+            File.Delete(filepath);
+        RevergePackage gfs = RevergePackage.Create(folder);
+        Writer writer = new(filepath);
+        writer.Write(gfs);
+    }
+    private static void Unpack(string file)
+    {
+        string output = Path.ChangeExtension(file,null);
+        if(Directory.Exists(output))
+            Directory.Delete(output,true);
+        string metadatapath = $"{output}.metadata";
+        Reader reader = new(file);
+        RevergePackage gfs = reader.ReadRevergePackage();
+        foreach(var pair in gfs)
+        {
+            RevergePackageEntry entry = pair.Value;
+            string fullpath = Path.Combine(output,entry.Path);
+            string? folder = Path.GetDirectoryName(fullpath);
+            if(folder == null) continue;
+            Directory.CreateDirectory(folder);
+            Writer writer = new(fullpath);
+            writer.Write(entry.Data);
+            writer.Close();
+        }
+        if(!File.Exists(metadatapath))
+            gfs.Metadata.Save(metadatapath);
     }
 }

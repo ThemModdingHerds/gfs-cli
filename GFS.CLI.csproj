@@ -5,10 +5,11 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>ThemModdingHerds.$(MSBuildProjectName)</AssemblyName>
-        <Version>1.0.0</Version>
+        <Version>1.0.1</Version>
         <Authors>NightTheFox</Authors>
+        <ApplicationIcon>icon.ico</ApplicationIcon>
     </PropertyGroup>
     <ItemGroup>
-      <PackageReference Include="ThemModdingHerds.GFS" Version="1.0.1" />
+      <PackageReference Include="ThemModdingHerds.GFS" Version="2.1.1" />
     </ItemGroup>
 </Project>
